@@ -1,0 +1,66 @@
+//CREATE DB
+CREATE DATABASE GOOGLE_MAPS_DATA;
+
+//CONNECTION BETWEEN SNOWFLAKE AND S3
+CREATE OR REPLACE STORAGE INTEGRATION S3_INIT
+    TYPE = EXTERNAL_STAGE
+    STORAGE_PROVIDER = S3
+    ENABLED = TRUE
+    STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::533267016810:role/google-data-spark-snowflake-role'
+    STORAGE_ALLOWED_LOCATIONS = ('s3://google-maps-etl-project-amar')
+    COMMENT = 'Creating connection to s3'
+
+DESC INTEGRATION S3_INIT;
+
+//CREATE FILE FORMAT OBJECT
+CREATE OR REPLACE FILE FORMAT csv_fileformat
+    type = csv
+    field_delimiter = ','
+    skip_header = 1
+    null_if = ('NULL','null')
+    empty_field_as_null = TRUE;
+
+//CREATE STAGE OBJECT
+CREATE OR REPLACE STAGE google_data_stage
+    URL = 's3://google-maps-etl-project-amar/transformed_data/'
+    STORAGE_INTEGRATION = S3_INIT
+    FILE_FORMAT = csv_fileformat;
+
+
+LIST @google_data_stage;
+
+
+//CREATE TABLE FOR GOOGLE DATA AND DEFINE THE SCHEMA
+CREATE OR REPLACE TABLE tbl_google_data (
+    name STRING,
+    address STRING,
+    review_count STRING,
+    phone_number STRING,
+    place_link STRING
+);
+
+DESC TABLE tbl_google_data;
+
+
+//INSERT DATA FROM s3 FILES
+COPY INTO tbl_google_data
+FROM @google_data_stage/maps_data/transformed_data_2025-01-01_06-31-09/run-1735713069044-part-r-00000;
+
+SELECT * FROM tbl_google_data;
+
+SELECT count(*) AS "total_number" FROM tbl_google_data;
+
+SELECT CURRENT_REGION();
+
+
+--CREATING SNOWPIPE FOR AUTOMATING THE PROCESS--
+CREATE OR REPLACE SCHEMA pipe;
+
+CREATE OR REPLACE PIPE tbl_google_data_pipe
+auto_ingest = TRUE
+AS
+COPY INTO tbl_google_data
+FROM @google_data_stage/maps_data/;
+
+DESC pipe tbl_google_data_pipe;
+
