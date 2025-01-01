@@ -5,8 +5,8 @@ Overview
 ------------------------------------------------------------------
 This project aims to perform analysis on the Google Maps data based on the specific lat/long details and categories.
 
-Project Goals
-----------------
+Project Goal
+--------------
 1. Data Extraction — Build a mechanism to extract data from maps API
 2. ETL System — We are getting data in raw format, transforming this data into the proper format
 3. Snowflake — We will be getting data from API and store it on to Snowflake Data Warehouse.
